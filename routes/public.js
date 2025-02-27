@@ -20,6 +20,7 @@ router.post('/cadastro', async (req, res) => {
 
         const usp = await prisma.user.create({
             data: {
+                username:  user.username,
                 name: user.name,
                 email: user.email,
                 password: hashPassword,
@@ -41,17 +42,13 @@ router.post('/login', async (req, res) => {
             },
 
         });
-
         if(!user){
             return res.status(401).json({ error: 'E-mail ou senha inválidos' });
         }
-
-
         const isMatch = await bcrypt.compare(userInfo.password, user.password)
         if(!isMatch){
             return res.status(401).json({ error: 'E-mail ou senha inválidos' });
         }
-
         const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1h' });
         res.status(200).json(token)
     } 
