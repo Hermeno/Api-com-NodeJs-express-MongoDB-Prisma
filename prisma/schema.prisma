@@ -25,3 +25,11 @@ model User {
   name    String
   password    String
 }
+model Credito {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id      String
+  moeda        String
+  valor         Float
+  referencia   String
+  data_criacao DateTime @default(now())
+}          
