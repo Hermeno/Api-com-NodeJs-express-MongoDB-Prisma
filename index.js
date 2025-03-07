@@ -11,6 +11,7 @@ app.use(express.json());
 
 
 app.use('/', publicRoutes)
+// app.use('/', privateRoutes)
 app.use('/', auth, privateRoutes)
 
 app.listen(3000, () => console.log("server init"))

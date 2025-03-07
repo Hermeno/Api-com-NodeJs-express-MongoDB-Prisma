@@ -23,7 +23,7 @@ model Credito {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   user_id      String
   moeda        String
-  valor         Float
+  valor         String
   referencia   String
   data_criacao DateTime @default(now())
 }    
@@ -48,7 +48,6 @@ model Missao {
   missao       String
   data_inicio_prevista DateTime
   data_final_prevista DateTime
-  pais          String
   estado         String
   cidade         String
   user_id       String
@@ -57,7 +56,6 @@ model Missao {
 
 model Despesas {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
-
   descricao    String
   moeda_a_debitar String
   data_padrao    String

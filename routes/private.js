@@ -1,5 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+// import auth from './auth';
 
 const router = express.Router();
 const prisma = new PrismaClient()
@@ -24,21 +25,25 @@ router.get('/listar-usuarios', async (req, res) => {
 
 router.post('/cadastrar-credito', async (req, res) => {
     try {
-        const { user_id, valor, data_vencimento } = req.body
-        await prisma.credito.create({
+        const { moeda, valor, referencia } = req.body;
+        const user_id = req.userId; // Pega direto do token autenticado
+
+        const credito = await prisma.credito.create({
             data: {
                 user_id,
                 moeda,
                 valor,
                 referencia,
-                data_criacao
-            }
-        })
-        res.status(200).json({ message: 'Crédito cadastrado com sucesso!' })
+            },
+        });
+
+        res.status(201).json({ message: 'Crédito cadastrado!', credito });
     } catch (error) {
-        res.status(500).json({ message: 'Falha ao cadastrar o crédito'})
+        console.error(error);
+        res.status(500).json({ message: 'Falha ao cadastrar o crédito' });
     }
 });
+
 
 
 
@@ -92,7 +97,7 @@ router.get('/buscar-cambios/:user_id', async (req, res) => {
         const cambios = await prisma.cambio.findMany({
             where: {
                 user_id
-            }
+            } 
         })
         res.status(200).json({ message: 'Cambios encontrados!', cambios })
     } catch (error) {
@@ -104,21 +109,22 @@ router.get('/buscar-cambios/:user_id', async (req, res) => {
 
 router.post('/cadastrar-missao', async (req, res) => {
     try {
-        const { missao, data_inicio_prevista, data_final_prevista, pais, estado, cidade, user_id, username } = req.body
-        await prisma.missao.create({
+        const { missao, estado, cidade, data_inicio_prevista, data_final_prevista, username } = req.body
+        const user_id = req.userId;
+        const mission = await prisma.missao.create({
             data: {
-                missao,
-                data_inicio_prevista,
-                data_final_prevista,
-                pais,
-                estado,
-                cidade,
+                missao, 
+                estado, 
+                cidade, 
+                data_inicio_prevista, 
+                data_final_prevista, 
                 user_id,
                 username
             }
         })
-        res.status(200).json({ message: 'Missão cadastrada com sucesso!' })
+        res.status(200).json({ message: 'Missão cadastrada com sucesso!', mission })
     } catch (error) {
+        // console.error(error);
         res.status(500).json({ message: 'Falha ao cadastrar a missão'})
     }
 });
