@@ -109,7 +109,7 @@ router.get('/buscar-cambios/:user_id', async (req, res) => {
 
 router.post('/cadastrar-missao', async (req, res) => {
     try {
-        const { missao, estado, cidade, data_inicio_prevista, data_final_prevista, username } = req.body
+        const { missao, estado, cidade, data_inicio_prevista, data_final_prevista, pais, username } = req.body
         const user_id = req.userId;
         const mission = await prisma.missao.create({
             data: {
@@ -118,6 +118,7 @@ router.post('/cadastrar-missao', async (req, res) => {
                 cidade, 
                 data_inicio_prevista, 
                 data_final_prevista, 
+                pais,
                 user_id,
                 username
             }
@@ -131,21 +132,32 @@ router.post('/cadastrar-missao', async (req, res) => {
 
 
 
-router.get('/buscar-missao', async (req, res) => {
+router.get('/buscar-missoes', async (req, res) => {
     try {
-        const missaos = await prisma.missao.findMany({
-            where: {
-                user_id: req.query.user_id
-            }
-        })
-        res.status(200).json({ message: 'Missões encontradas!', missaos })
+      const missoes = await prisma.missao.findMany();
+      res.status(200).json({ message: 'Missões encontradas!', missoes });
     } catch (error) {
-        res.status(500).json({ message: 'Falha ao buscar as missões'})
+      res.status(500).json({ message: 'Falha ao buscar as missões', error });
     }
-})
-
-
+  });
   
+
+
+  router.delete('/apagar-missoes', async (req, res) => {
+    // const { confirmacao } = req.body;
+  
+    // if (confirmacao !== 'CONFIRMAR') {
+    //   return res.status(400).json({ message: 'Confirmação inválida!' });
+    // }
+  
+    try {
+      await prisma.missao.deleteMany();
+      res.status(200).json({ message: 'Todas as missões foram eliminadas com sucesso!' });
+    } catch (error) {
+      console.error('Erro ao apagar as missões:', error);
+      res.status(500).json({ message: 'Falha ao apagar as missões', error });
+    }
+  });  
 
 router.post('/cadastrar-despesas', async (req, res) => {
     try {

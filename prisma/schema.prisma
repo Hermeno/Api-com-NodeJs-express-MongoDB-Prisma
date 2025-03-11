@@ -48,6 +48,7 @@ model Missao {
   missao       String
   data_inicio_prevista DateTime
   data_final_prevista DateTime
+  pais           String
   estado         String
   cidade         String
   user_id       String
