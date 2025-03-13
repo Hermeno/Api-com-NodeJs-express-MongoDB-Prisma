@@ -55,19 +55,20 @@ model Missao {
   username      String
 }
 
+
+
+
+// moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo , missao_id, missao_name
 model Despesas {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  descricao    String
-  moeda_a_debitar String
-  data_padrao    String
-  pais          String
+  moeda        String
+  valor         String
   cidade         String
+  descricao     String
   outro         String
-  numero_recibo         String
-  valor         Float
-  foto_recibo    String
-  data_criacao DateTime @default(now())
+  data_padrao   DateTime @default(now())
+  numero_recibo  String
   missao_id     String
+  missao_name  String
   user_id       String
-  username      String
 }
