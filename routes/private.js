@@ -69,8 +69,9 @@ router.get('/buscar-creditos', async (req, res) => {
 
 router.post('/cadastrar-cambio', async (req, res) => {
     try {
-        const { user_id, moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo, foto_recibo } = req.body
-        await prisma.cambio.create({
+        const { moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo } = req.body
+        const user_id = req.userId;
+        const cambios = await prisma.cambio.create({
             data: {
                 user_id,
                 moeda_origem,
@@ -78,12 +79,13 @@ router.post('/cadastrar-cambio', async (req, res) => {
                 cotacao,
                 total_a_cambiar,
                 total_cambiado,
-                numero_recibo,
-                foto_recibo
+                numero_recibo
             }
         })
-        res.status(200).json({ message: 'Cambio cadastrado com sucesso!' })
+        console.log(cambios)
+        res.status(200).json({ message: 'Cambio cadastrado com sucesso!', cambios })
     } catch (error) {
+        console.error(error)
         res.status(500).json({ message: 'Falha ao cadastrar o cambio'})
     }
 });

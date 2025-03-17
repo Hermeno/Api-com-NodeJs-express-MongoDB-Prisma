@@ -36,11 +36,11 @@ model Cambio {
   total_a_cambiar String
   total_cambiado String
   numero_recibo         String
-  foto_recibo    String
+  // foto_recibo    String
   data_criacao DateTime @default(now())
   user_id       String
-  username      String
-  data_cambio  DateTime @default(now())
+  // username      String
+  // data_cambio  DateTime @default(now())
 }
 
 model Missao {
