@@ -59,16 +59,31 @@ model Missao {
 
 
 // moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo , missao_id, missao_name
-model Despesas {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  moeda        String
-  valor         String
-  cidade         String
-  descricao     String
-  outro         String
-  data_padrao   DateTime @default(now())
-  numero_recibo  String
-  missao_id     String
-  missao_name  String
-  user_id       String
+// model Despesas {
+//   id            String   @id @default(auto()) @map("_id") @db.ObjectId
+//   moeda         String
+//   valor         String
+//   cidade        String
+//   descricao     String
+//   outro         String
+//   data_padrao   DateTime @default(now())
+//   numero_recibo String
+//   missao_id     String
+//   missao_name   String
+//   user_id       String
+//   photos        String
+// }
+model Despesa {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id   String
+  moeda     String
+  valor     String
+  cidade    String
+  descricao String
+  outro     String
+  numero_recibo String
+  missao_id String
+  missao_name String
+  photos    String // Armazenando o JSON com as URLs
+  createdAt DateTime @default(now())
 }

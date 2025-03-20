@@ -1,13 +1,27 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
 // import auth from './auth';
 
 const router = express.Router();
 const prisma = new PrismaClient()
-
-// app.use(express.json());
-
-// Criando um middleware que imprime no console o caminho e a query da requisição
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      const dir = './uploads';
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);  // Cria a pasta 'uploads' se não existir
+      }
+      cb(null, dir);
+    },
+    filename: function (req, file, cb) {
+      const extname = path.extname(file.originalname).toLowerCase();
+      const filename = `${Date.now()}${extname}`;
+      cb(null, filename); // Nome do arquivo com timestamp para evitar conflitos
+    },
+  });
+  
+  const upload = multer({ storage: storage });
 
 router.get('/listar-usuarios', async (req, res) => {
 
@@ -64,6 +78,20 @@ router.get('/buscar-creditos', async (req, res) => {
     }
 });
 
+
+router.get('/buscar-creditos-limit', async (req, res) => {
+    try {
+        const user_id = req.userId;
+        const credito = await prisma.credito.findFirst({
+            where: {
+                user_id
+            }
+        })
+        res.status(200).json({ message: 'Créditos encontrados!', creditos })
+    } catch (error) {
+        res.status(500).json({ message: 'Falha ao buscar os créditos'})
+    }
+});
 
 
 
@@ -164,20 +192,101 @@ router.get('/buscar-missoes', async (req, res) => {
 
 
 
-router.post('/cadastrar-despesas', async (req, res) => {
+// router.post('/cadastrar-despesas', async (req, res) => {
+//     try {
+//         // user_id, valor, cidade, descricao, outro, data_padrao, numero_recibo , missao_id, missao_name}, token
+//         const { moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo , missao_id, missao_name } = req.body
+//          const user_id = req.userId;
+//          const dispesas = await prisma.despesas.create({
+//             data: { user_id, moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo, missao_id, missao_name
+//             }
+//         })
+//         res.status(200).json({ message: 'Despesa cadastrada com sucesso!', dispesas })
+//     } catch (error) {
+//         res.status(500).json({ message: 'Falha ao cadastrar a despesa'})
+//     }
+// });
+
+
+// router.post('/cadastrar-despesas', upload.array('photos'), async (req, res) => {
+//     try {
+//       const { moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo, missao_id, missao_name } = req.body;
+//       const user_id = req.userId;  
+//       let uploadedPhotos = [];
+//       console.log("Fotos carregadas para o servidor:", req.files);
+//       if (req.files && req.files.length > 0) {
+//         uploadedPhotos = req.files.map(file => `/uploads/${file.filename}`);
+//       } 
+//       try {
+//         console.log("Dados recebidos para cadastrar despesa:", req.body);
+//         const despesa = await prisma.despesa.create({
+//           data: { user_id, moeda, valor, cidade, descricao, outro, numero_recibo, missao_id, missao_name, photos: JSON.stringify(uploadedPhotos), // Salvando as URLs das fotos no banco de dados
+//           },
+//         });
+//         console.log("Despesa criada:", despesa);
+//         res.status(200).json({ error: 'Despesa cadastrada com sucesso!', despesa });
+//       } catch (error) {
+//         console.error("Erro ao criar despesa no banco:", error);
+//         res.status(500).json({ error: 'Falha ao cadastrar a despesa' });
+//       }
+//     } catch (error) {
+//       console.error("Erro ao processar a solicitação:", error);
+//       res.status(500).json({ error: 'Erro inesperado ao processar a solicitação' });
+//     }
+//   });
+router.post('/cadastrar-despesas', upload.array('photos'), async (req, res) => {
     try {
-        // user_id, valor, cidade, descricao, outro, data_padrao, numero_recibo , missao_id, missao_name}, token
-        const { moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo , missao_id, missao_name } = req.body
-         const user_id = req.userId;
-         const dispesas = await prisma.despesas.create({
-            data: { user_id, moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo, missao_id, missao_name
-            }
-        })
-        res.status(200).json({ message: 'Despesa cadastrada com sucesso!', dispesas })
+
+
+        console.log('Arquivos carregados:', req.files); // Deve mostrar os arquivos carregados
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'Nenhum arquivo foi carregado.' });
+        }
+
+
+
+        const { moeda, valor, cidade, descricao, outro, numero_recibo, missao_id, missao_name } = req.body;
+        const user_id = req.userId;
+        console.log('Arquivos carregados:', req.files);
+
+        let uploadedPhotos = [];
+        if (req.files && req.files.length > 0) {
+            uploadedPhotos = req.files.map(file => file.path);
+            console.log("Fotos carregadas para o servidor:", uploadedPhotos);
+        }
+ 
+        
+                
+
+
+        
+
+        const despesa = await prisma.despesa.create({
+            data: {
+                user_id,
+                moeda,
+                valor,
+                cidade,
+                descricao,
+                outro,
+                numero_recibo,
+                missao_id,
+                missao_name,
+                photos: JSON.stringify(uploadedPhotos), 
+            },
+        });
+
+        res.status(200).json({ message: 'Despesa cadastrada com sucesso!', despesa });
     } catch (error) {
-        res.status(500).json({ message: 'Falha ao cadastrar a despesa'})
+        console.error("Erro ao criar despesa no banco:", error);
+        res.status(500).json({ error: 'Falha ao cadastrar a despesa' });
     }
 });
+
+
+
+
 
 
 
