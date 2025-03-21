@@ -82,7 +82,7 @@ router.get('/buscar-creditos', async (req, res) => {
 router.get('/buscar-creditos-limit', async (req, res) => {
     try {
         const user_id = req.userId;
-        const credito = await prisma.credito.findFirst({
+        const creditos = await prisma.credito.findFirst({
             where: {
                 user_id
             }
@@ -93,13 +93,73 @@ router.get('/buscar-creditos-limit', async (req, res) => {
     }
 });
 
+router.delete('/apagar-credito', async (req, res) => {
+    // const { confirmacao } = req.body;
+  
+    // if (confirmacao !== 'CONFIRMAR') {
+    //   return res.status(400).json({ message: 'Confirmação inválida!' });
+    // }
+  
+    try {
+      await prisma.credito.deleteMany();
+      res.status(200).json({ message: 'Todas as missões foram eliminadas com sucesso!' });
+    } catch (error) {
+      console.error('Erro ao apagar as missões:', error);
+      res.status(500).json({ message: 'Falha ao apagar as missões', error });
+    }
+  });  
 
+// router.post('/cadastrar-cambio', async (req, res) => {
+//     try {
+//         const { moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo } = req.body
+//         const user_id = req.userId;
+//         const cambios = await prisma.cambio.create({
+//             data: { user_id, moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo }
+//         })
+//         console.log(cambios)
+//         res.status(200).json({ message: 'Cambio cadastrado com sucesso!', cambios })
+//     } catch (error) {
+//         console.error(error)
+//         res.status(500).json({ message: 'Falha ao cadastrar o cambio'})
+//     }
+// });
 
 router.post('/cadastrar-cambio', async (req, res) => {
     try {
-        const { moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo } = req.body
+        const { moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo } = req.body;
         const user_id = req.userId;
-        const cambios = await prisma.cambio.create({
+
+       // 🔎 Buscar crédito atual
+        const credito = await prisma.credito.findFirst({
+            where: {
+                user_id,
+                moeda: moeda_origem // Busca pela moeda de origem
+            }
+        });
+        console.log(credito);
+
+        if (!credito) {
+            return res.status(404).json({ message: 'Crédito não encontrado para essa moeda' });
+        }
+
+        // ✅ Converter para número antes da comparação
+        if (Number(credito.valor) < total_a_cambiar) {
+            return res.status(400).json({ message: 'Saldo insuficiente para realizar o câmbio' });
+        }
+
+        // ✅ Converter para número antes de subtrair
+        const novoValor = (Number(credito.valor) - total_a_cambiar).toString();
+
+        await prisma.credito.update({
+            where: {
+                id: credito.id
+            },
+            data: {
+                valor: novoValor
+            }
+        });
+
+        const cambio = await prisma.cambio.create({
             data: {
                 user_id,
                 moeda_origem,
@@ -109,16 +169,15 @@ router.post('/cadastrar-cambio', async (req, res) => {
                 total_cambiado,
                 numero_recibo
             }
-        })
-        console.log(cambios)
-        res.status(200).json({ message: 'Cambio cadastrado com sucesso!', cambios })
+        });
+
+        console.log(cambio);
+        res.status(200).json({ message: 'Cambio cadastrado com sucesso!', cambio });
     } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Falha ao cadastrar o cambio'})
+        console.error(error);
+        res.status(500).json({ message: 'Falha ao cadastrar o câmbio' });
     }
 });
-
-
 
 
 
@@ -302,19 +361,21 @@ router.get('/buscar-despesas', async (req, res) => {
 
 
 
-// router.get('/buscar-despesas', async (req, res) => {
-//     try {
-//         const despesas = await prisma.despesa.findMany({
-//             where: {
-//                 missao_id: req.query.missao_id,
-//                 user_id: req.query.user_id
-//             }
-//         })
-//         res.status(200).json({ message: 'Despesas encontradas!', despesas })
-//     } catch (error) {
-//         res.status(500).json({ message: 'Falha ao buscar as despesas'})
-//     }
-// })
+
+router.get('/logout', function(req, res) {
+    req.session.destroy(function(err) {
+        if(err) {
+            console.log(err);
+            return res.status(500).send();
+        }
+        return res.status(200).send();
+    }).then();
+    req.logout();
+    res.redirect('/');
+});
 
 
 export default router;
+
+
+
