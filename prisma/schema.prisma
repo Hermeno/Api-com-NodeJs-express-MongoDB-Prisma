@@ -25,6 +25,7 @@ model Credito {
   moeda        String
   valor         String
   referencia   String
+  missao_id   String
   data_criacao DateTime @default(now())
 }    
 
@@ -36,7 +37,7 @@ model Cambio {
   total_a_cambiar String
   total_cambiado String
   numero_recibo         String
-  // foto_recibo    String
+  missao_id    String
   data_criacao DateTime @default(now())
   user_id       String
   // username      String
@@ -53,6 +54,7 @@ model Missao {
   cidade         String
   user_id       String
   username      String
+  status        String
 }
 
 

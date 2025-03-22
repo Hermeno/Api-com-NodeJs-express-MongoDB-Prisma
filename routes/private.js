@@ -39,7 +39,7 @@ router.get('/listar-usuarios', async (req, res) => {
 
 router.post('/cadastrar-credito', async (req, res) => {
     try {
-        const { moeda, valor, referencia } = req.body;
+        const { moeda, valor, referencia, missao_id } = req.body;
         const user_id = req.userId; // Pega direto do token autenticado
 
         const credito = await prisma.credito.create({
@@ -48,6 +48,7 @@ router.post('/cadastrar-credito', async (req, res) => {
                 moeda,
                 valor,
                 referencia,
+                missao_id
             },
         });
 
@@ -64,27 +65,31 @@ router.post('/cadastrar-credito', async (req, res) => {
 
 
 router.get('/buscar-creditos', async (req, res) => {
+    const { missao_id } = req.query; // Para pegar o missao_id da query string (url)
+    
     try {
-        // const user_id = parseInt(req.params.user_id)
         const user_id = req.userId;
         const creditos = await prisma.credito.findMany({
             where: {
-                user_id
+                user_id,
+                missao_id // Certifique-se de que o missao_id seja tratado corretamente
             }
-        })
-        res.status(200).json({ message: 'Créditos encontrados!', creditos })
+        });
+        res.status(200).json({ message: 'Créditos encontrados!', creditos });
     } catch (error) {
-        res.status(500).json({ message: 'Falha ao buscar os créditos'})
+        res.status(500).json({ message: 'Falha ao buscar os créditos' });
     }
 });
 
 
 router.get('/buscar-creditos-limit', async (req, res) => {
+    const { missao_id } = req.query; 
     try {
         const user_id = req.userId;
         const creditos = await prisma.credito.findFirst({
             where: {
-                user_id
+                user_id,
+                missao_id
             }
         })
         res.status(200).json({ message: 'Créditos encontrados!', creditos })
@@ -92,6 +97,27 @@ router.get('/buscar-creditos-limit', async (req, res) => {
         res.status(500).json({ message: 'Falha ao buscar os créditos'})
     }
 });
+
+router.get('/buscar-moedas', async (req, res) => {
+    const { missao_id } = req.body;
+    try {
+        const user_id = req.userId;
+        const creditos = await prisma.credito.findMany({
+            where: { user_id, missao_id },
+            select: { 
+                moeda: true,
+                valor: true 
+            }
+        });        
+        res.status(200).json({ message: 'Créditos encontrados!', creditos });
+    } catch (error) {
+        res.status(500).json({ message: 'Falha ao buscar os créditos' });
+    }
+});
+
+
+
+
 
 router.delete('/apagar-credito', async (req, res) => {
     // const { confirmacao } = req.body;
@@ -102,7 +128,7 @@ router.delete('/apagar-credito', async (req, res) => {
   
     try {
       await prisma.credito.deleteMany();
-      res.status(200).json({ message: 'Todas as missões foram eliminadas com sucesso!' });
+      res.status(200).json({ message: 'Todos moedas foram eliminadas com sucesso!' });
     } catch (error) {
       console.error('Erro ao apagar as missões:', error);
       res.status(500).json({ message: 'Falha ao apagar as missões', error });
@@ -136,7 +162,6 @@ router.post('/cadastrar-cambio', async (req, res) => {
                 moeda: moeda_origem // Busca pela moeda de origem
             }
         });
-        console.log(credito);
 
         if (!credito) {
             return res.status(404).json({ message: 'Crédito não encontrado para essa moeda' });
@@ -170,11 +195,8 @@ router.post('/cadastrar-cambio', async (req, res) => {
                 numero_recibo
             }
         });
-
-        console.log(cambio);
         res.status(200).json({ message: 'Cambio cadastrado com sucesso!', cambio });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: 'Falha ao cadastrar o câmbio' });
     }
 });
@@ -201,6 +223,7 @@ router.post('/cadastrar-missao', async (req, res) => {
     try {
         const { missao, estado, cidade, data_inicio_prevista, data_final_prevista, pais, username } = req.body
         const user_id = req.userId;
+        const status = 'Em Andamento';
         const mission = await prisma.missao.create({
             data: {
                 missao, 
@@ -210,7 +233,8 @@ router.post('/cadastrar-missao', async (req, res) => {
                 data_final_prevista, 
                 pais,
                 user_id,
-                username
+                username,
+                status
             }
         })
         res.status(200).json({ message: 'Missão cadastrada com sucesso!', mission })
@@ -223,13 +247,21 @@ router.post('/cadastrar-missao', async (req, res) => {
 
 
 router.get('/buscar-missoes', async (req, res) => {
+    const user_id = req.userId;
     try {
-      const missoes = await prisma.missao.findMany();
-      res.status(200).json({ message: 'Missões encontradas!', missoes });
+        const missoes = await prisma.missao.findMany({
+            where: {
+                user_id, // Filtra pelo ID do usuário
+                status: 'Em Andamento' // Filtra pelo status "pending"
+            }
+        });
+
+        res.status(200).json({ message: 'Missões encontradas!', missoes });
     } catch (error) {
-      res.status(500).json({ message: 'Falha ao buscar as missões', error });
+        res.status(500).json({ message: 'Falha ao buscar as missões', error });
     }
-  });
+});
+
   
 
 
@@ -314,14 +346,7 @@ router.post('/cadastrar-despesas', upload.array('photos'), async (req, res) => {
             uploadedPhotos = req.files.map(file => file.path);
             console.log("Fotos carregadas para o servidor:", uploadedPhotos);
         }
- 
-        
-                
-
-
-        
-
-        const despesa = await prisma.despesa.create({
+      const despesa = await prisma.despesa.create({
             data: {
                 user_id,
                 moeda,
@@ -348,31 +373,35 @@ router.post('/cadastrar-despesas', upload.array('photos'), async (req, res) => {
 
 
 
-
 router.get('/buscar-despesas', async (req, res) => {
-
+    const { missao_id } = req.query;  // Use `req.query` para parâmetros na URL
+    const user_id = req.userId;
     try {
-        const dispesas = await prisma.despesas.findMany( );
-        res.status(200).json({ message: 'Despesas listados!', dispesas})
+        const despesas = await prisma.despesa.findMany({
+            where: {
+                user_id, 
+                missao_id: parseInt(missao_id),  // Converte para um inteiro, caso necessário
+            }
+        });
+        res.status(200).json({ message: 'Despesas listadas!', despesas });
     } catch (error) {
-        res.status(500).json({ message: 'Falha no servidor'})
+        res.status(500).json({ message: 'Falha no servidor' });
     }
 });
 
 
 
-
-router.get('/logout', function(req, res) {
-    req.session.destroy(function(err) {
-        if(err) {
-            console.log(err);
-            return res.status(500).send();
-        }
-        return res.status(200).send();
-    }).then();
-    req.logout();
-    res.redirect('/');
-});
+// router.get('/logout', function(req, res) {
+//     req.session.destroy(function(err) {
+//         if(err) {
+//             console.log(err);
+//             return res.status(500).send();
+//         }
+//         return res.status(200).send();
+//     }).then();
+//     req.logout();
+//     res.redirect('/');
+// });
 
 
 export default router;
