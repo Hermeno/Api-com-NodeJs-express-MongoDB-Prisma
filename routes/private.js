@@ -152,7 +152,7 @@ router.delete('/apagar-credito', async (req, res) => {
 
 router.post('/cadastrar-cambio', async (req, res) => {
     try {
-        const { moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo } = req.body;
+        const { moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo,missao_id } = req.body;
         const user_id = req.userId;
 
        // 🔎 Buscar crédito atual
@@ -192,7 +192,8 @@ router.post('/cadastrar-cambio', async (req, res) => {
                 cotacao,
                 total_a_cambiar,
                 total_cambiado,
-                numero_recibo
+                numero_recibo,
+                missao_id
             }
         });
         res.status(200).json({ message: 'Cambio cadastrado com sucesso!', cambio });
@@ -200,6 +201,73 @@ router.post('/cadastrar-cambio', async (req, res) => {
         res.status(500).json({ message: 'Falha ao cadastrar o câmbio' });
     }
 });
+
+
+
+
+router.put('/atualizar-cambio/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo, missao_id } = req.body;
+        const user_id = req.userId;
+
+        // 🔎 Verificar se o câmbio existe
+        const cambioExistente = await prisma.cambio.findUnique({
+            where: { id: Number(id) }
+        });
+
+        if (!cambioExistente) {
+            return res.status(404).json({ message: 'Câmbio não encontrado' });
+        }
+
+        // 🔎 Buscar crédito atual com base na moeda de origem
+        const credito = await prisma.credito.findFirst({
+            where: {
+                user_id,
+                moeda: moeda_origem
+            }
+        });
+
+        if (!credito) {
+            return res.status(404).json({ message: 'Crédito não encontrado para essa moeda' });
+        }
+
+        // ✅ Verificar se há saldo suficiente para a atualização
+        const saldoAtual = Number(credito.valor) + Number(cambioExistente.total_a_cambiar); // Converte para número para calcular
+        if (saldoAtual < Number(total_a_cambiar)) {
+            return res.status(400).json({ message: 'Saldo insuficiente para realizar o câmbio' });
+        }
+
+        // ✅ Atualizar saldo no crédito (salvando como string)
+        const novoValor = (saldoAtual - Number(total_a_cambiar)).toString();
+        await prisma.credito.update({
+            where: { id: credito.id },
+            data: { valor: novoValor }
+        });
+
+        // ✅ Atualizar o câmbio (salvando strings diretamente)
+        const cambioAtualizado = await prisma.cambio.update({
+            where: { id: Number(id) },
+            data: {
+                moeda_origem,
+                moeda_destino,
+                cotacao,
+                total_a_cambiar,
+                total_cambiado,
+                numero_recibo,
+                missao_id
+            }
+        });
+
+        res.status(200).json({ message: 'Câmbio atualizado com sucesso!', cambio: cambioAtualizado });
+    } catch (error) {
+        console.error('Erro ao atualizar câmbio:', error);
+        res.status(500).json({ message: 'Falha ao atualizar o câmbio' });
+    }
+});
+
+
+
 
 
 
@@ -246,6 +314,49 @@ router.post('/cadastrar-missao', async (req, res) => {
 
 
 
+
+
+
+router.put('/atualizar-missao/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { missao, estado, cidade, data_inicio_prevista, data_final_prevista, pais, username } = req.body;
+        const user_id = req.userId;
+
+        const mission = await prisma.missao.update({
+            where: { id: id },
+            data: {
+                missao,
+                estado,
+                cidade,
+                data_inicio_prevista,
+                data_final_prevista,
+                pais,
+                user_id,
+                username
+            }
+        });
+
+        res.status(200).json({ message: 'Missão atualizada com sucesso!', mission });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Falha ao atualizar a missão' });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 router.get('/buscar-missoes', async (req, res) => {
     const user_id = req.userId;
     try {
@@ -262,16 +373,28 @@ router.get('/buscar-missoes', async (req, res) => {
     }
 });
 
-  
+
+router.get('/buscar-missaoId', async (req, res) => {
+    const { missao_id } = req.query;
+    const user_id = req.userId;
+    try {
+        const missoes = await prisma.missao.findMany({
+            where: {
+                user_id,
+                id: missao_id
+            }
+        });
+        res.status(200).json({ message: 'Missões encontradas!', missoes });
+    } catch (error) {
+        console.error('Erro ao buscar missões:', error);
+        res.status(500).json({ message: 'Falha ao buscar as missões', error });
+    }
+});
+
+
 
 
   router.delete('/apagar-missoes', async (req, res) => {
-    // const { confirmacao } = req.body;
-  
-    // if (confirmacao !== 'CONFIRMAR') {
-    //   return res.status(400).json({ message: 'Confirmação inválida!' });
-    // }
-  
     try {
       await prisma.missao.deleteMany();
       res.status(200).json({ message: 'Todas as missões foram eliminadas com sucesso!' });
@@ -281,92 +404,70 @@ router.get('/buscar-missoes', async (req, res) => {
     }
   });  
 
-
-
-// router.post('/cadastrar-despesas', async (req, res) => {
-//     try {
-//         // user_id, valor, cidade, descricao, outro, data_padrao, numero_recibo , missao_id, missao_name}, token
-//         const { moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo , missao_id, missao_name } = req.body
-//          const user_id = req.userId;
-//          const dispesas = await prisma.despesas.create({
-//             data: { user_id, moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo, missao_id, missao_name
-//             }
-//         })
-//         res.status(200).json({ message: 'Despesa cadastrada com sucesso!', dispesas })
-//     } catch (error) {
-//         res.status(500).json({ message: 'Falha ao cadastrar a despesa'})
-//     }
-// });
-
-
-// router.post('/cadastrar-despesas', upload.array('photos'), async (req, res) => {
-//     try {
-//       const { moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo, missao_id, missao_name } = req.body;
-//       const user_id = req.userId;  
-//       let uploadedPhotos = [];
-//       console.log("Fotos carregadas para o servidor:", req.files);
-//       if (req.files && req.files.length > 0) {
-//         uploadedPhotos = req.files.map(file => `/uploads/${file.filename}`);
-//       } 
-//       try {
-//         console.log("Dados recebidos para cadastrar despesa:", req.body);
-//         const despesa = await prisma.despesa.create({
-//           data: { user_id, moeda, valor, cidade, descricao, outro, numero_recibo, missao_id, missao_name, photos: JSON.stringify(uploadedPhotos), // Salvando as URLs das fotos no banco de dados
-//           },
-//         });
-//         console.log("Despesa criada:", despesa);
-//         res.status(200).json({ error: 'Despesa cadastrada com sucesso!', despesa });
-//       } catch (error) {
-//         console.error("Erro ao criar despesa no banco:", error);
-//         res.status(500).json({ error: 'Falha ao cadastrar a despesa' });
-//       }
-//     } catch (error) {
-//       console.error("Erro ao processar a solicitação:", error);
-//       res.status(500).json({ error: 'Erro inesperado ao processar a solicitação' });
-//     }
-//   });
-router.post('/cadastrar-despesas', upload.array('photos'), async (req, res) => {
+  router.delete('/apagar-cambio', async (req, res) => {
     try {
+      await prisma.cambio.deleteMany();
+      res.status(200).json({ message: 'Todas as missões foram eliminadas com sucesso!' });
+    } catch (error) {
+      console.error('Erro ao apagar as missões:', error);
+      res.status(500).json({ message: 'Falha ao apagar as missões', error });
+    }
+  }); 
 
-
-        console.log('Arquivos carregados:', req.files); // Deve mostrar os arquivos carregados
-
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ message: 'Nenhum arquivo foi carregado.' });
-        }
-
-
-
-        const { moeda, valor, cidade, descricao, outro, numero_recibo, missao_id, missao_name } = req.body;
+  router.post('/cadastrar-despesas', async (req, res) => {
+    try {
+        const { moeda, valor, cidade, descricao, outro, data_padrao, numero_recibo , missao_id } = req.body;
         const user_id = req.userId;
-        console.log('Arquivos carregados:', req.files);
 
-        let uploadedPhotos = [];
-        if (req.files && req.files.length > 0) {
-            uploadedPhotos = req.files.map(file => file.path);
-            console.log("Fotos carregadas para o servidor:", uploadedPhotos);
-        }
-      const despesa = await prisma.despesa.create({
-            data: {
+        const credito = await prisma.credito.findFirst({
+            where: {
                 user_id,
-                moeda,
-                valor,
-                cidade,
-                descricao,
-                outro,
-                numero_recibo,
-                missao_id,
-                missao_name,
-                photos: JSON.stringify(uploadedPhotos), 
-            },
+                moeda
+            }
         });
 
-        res.status(200).json({ message: 'Despesa cadastrada com sucesso!', despesa });
+        if (!credito) {
+            return res.status(404).json({ message: 'Crédito não encontrado para essa moeda' });
+        }
+
+        if (Number(credito.valor) < valor) {
+            return res.status(400).json({ message: 'Saldo insuficiente para realizar o câmbio' });
+        }
+
+        const novoValor = (Number(credito.valor) - valor).toString();
+
+        await prisma.credito.update({
+            where: {
+                id: credito.id
+            },
+            data: {
+                valor: novoValor
+            }
+        });
+
+        const dispesas = await prisma.despesa.create({
+            data: { 
+                user_id, 
+                moeda, 
+                valor, 
+                cidade, 
+                descricao, 
+                outro, 
+                data_padrao, 
+                numero_recibo, 
+                missao_id, 
+            }
+        });
+
+        console.log('Despesa cadastrada:', dispesas); 
+        res.status(200).json({ message: 'Despesa cadastrada com sucesso!', dispesas });
     } catch (error) {
-        console.error("Erro ao criar despesa no banco:", error);
-        res.status(500).json({ error: 'Falha ao cadastrar a despesa' });
+        console.error('Erro ao cadastrar despesa:', error);
+        res.status(500).json({ message: 'Falha ao cadastrar a despesa', error: error.message });
     }
 });
+
+
 
 
 
@@ -380,7 +481,7 @@ router.get('/buscar-despesas', async (req, res) => {
         const despesas = await prisma.despesa.findMany({
             where: {
                 user_id, 
-                missao_id: parseInt(missao_id),  // Converte para um inteiro, caso necessário
+                missao_id: missao_id,
             }
         });
         res.status(200).json({ message: 'Despesas listadas!', despesas });

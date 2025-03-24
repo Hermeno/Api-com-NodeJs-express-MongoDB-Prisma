@@ -82,10 +82,10 @@ model Despesa {
   valor     String
   cidade    String
   descricao String
+  data_padrao DateTime
   outro     String
   numero_recibo String
   missao_id String
-  missao_name String
-  photos    String // Armazenando o JSON com as URLs
+  // photos    String // Armazenando o JSON com as URLs
   createdAt DateTime @default(now())
 }
