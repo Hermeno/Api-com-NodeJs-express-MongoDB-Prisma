@@ -89,3 +89,12 @@ model Despesa {
   // photos    String // Armazenando o JSON com as URLs
   createdAt DateTime @default(now())
 }
+
+
+model CreditoSobra {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id   String
+  moeda     String
+  valor     String
+  missao_id String
+}

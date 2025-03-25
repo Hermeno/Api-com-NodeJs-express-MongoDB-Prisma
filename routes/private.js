@@ -268,6 +268,63 @@ router.put('/atualizar-cambio/:id', async (req, res) => {
 
 
 
+// Em seu arquivo intermediário (ex: missao.js)
+router.put('/missao/:missaoId', async (req, res) => {
+    const { missaoId } = req.params;
+    const { status } = req.body; // O status enviado será "terminado"
+    const userId = req.userId; // Supondo que você tenha um middleware de autenticação que coloca o userId na req
+
+    if (!status || status !== 'terminado') {
+        return res.status(400).json({ message: 'Status inválido ou ausente.' });
+    }
+
+    try {
+        // Passo 1: Selecionar todos os créditos da missão
+        const creditos = await prisma.credito.findMany({
+            where: {
+                user_id: userId,
+                missao_id: missaoId
+            }
+        });
+
+        if (creditos.length === 0) {
+            return res.status(404).json({ message: 'Nenhum crédito encontrado para esta missão.' });
+        }
+
+        // Passo 2: Adicionar os créditos na tabela CreditoSobra
+        for (const credito of creditos) {
+            await prisma.creditoSobra.create({
+                data: {
+                    user_id: credito.user_id,
+                    moeda: credito.moeda,
+                    valor: credito.valor,
+                    missao_id: credito.missao_id
+                }
+            });
+        }
+
+        // Passo 3: Excluir os registros na tabela credito
+        await prisma.credito.deleteMany({
+            where: {
+                user_id: userId,
+                missao_id: missaoId
+            }
+        });
+
+        // Passo 4: Atualizar o status da missão para "terminado"
+        const missao = await prisma.missao.update({
+            where: { id: missaoId, user_id: userId }, // Garante que o usuário só possa atualizar suas próprias missões
+            data: { status },
+        });
+
+        // Resposta de sucesso
+        res.status(200).json({ message: 'Missão atualizada para "terminado". Créditos movidos para "CreditoSobra".', missao });
+    } catch (error) {
+        console.error('Erro ao processar a missão:', error);
+        res.status(500).json({ message: 'Falha ao processar a missão.', error });
+    }
+});
+
 
 
 
@@ -286,6 +343,38 @@ router.get('/buscar-cambios/:user_id', async (req, res) => {
 });
 
 
+router.get('/buscar-cambio-All', async (req, res) => {
+    const { missao_id } = req.query;  // Use `req.query` para parâmetros na URL
+    const user_id = req.userId;
+    try {
+        const cambios = await prisma.cambio.findMany({
+            where: {
+                user_id, 
+                missao_id: missao_id,
+            }
+        });
+        res.status(200).json({ message: 'cambios listadas!', cambios });
+    } catch (error) {
+        res.status(500).json({ message: 'Falha no servidor' });
+    }
+});
+
+router.get('/buscar-despesas-All', async (req, res) => {
+    const { missao_id } = req.query;  // Use `req.query` para parâmetros na URL
+    const user_id = req.userId;
+    try {
+        const despesas = await prisma.despesa.findMany({
+            where: {
+                user_id, 
+                missao_id: missao_id,
+            }
+        });
+        console.log(despesas)
+        res.status(200).json({ message: 'despesas listadas!', despesas });
+    } catch (error) {
+        res.status(500).json({ message: 'Falha no servidor' });
+    }
+});
 
 router.post('/cadastrar-missao', async (req, res) => {
     try {
@@ -372,6 +461,23 @@ router.get('/buscar-missoes', async (req, res) => {
         res.status(500).json({ message: 'Falha ao buscar as missões', error });
     }
 });
+
+router.get('/buscar-missoes-All', async (req, res) => {
+    const user_id = req.userId;
+    try {
+        const missoes = await prisma.missao.findMany({
+            where: {
+                user_id, // Filtra pelo ID do usuário
+                // status: 'Em Andamento' // Filtra pelo status "pending"
+            }
+        });
+
+        res.status(200).json({ message: 'Missões encontradas!', missoes });
+    } catch (error) {
+        res.status(500).json({ message: 'Falha ao buscar as missões', error });
+    }
+});
+
 
 
 router.get('/buscar-missaoId', async (req, res) => {
