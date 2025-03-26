@@ -1,6 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
+
+
+
 
 import { PrismaClient } from '@prisma/client';
 
@@ -57,9 +61,66 @@ router.post('/login', async (req, res) => {
     }
 })
 
+router.post('/esqueci-senha', async (req, res) => {
+    const { email } = req.body;
+    
+    try {
+        const user = await prisma.user.findUnique({
+            where: { email }
+        });
 
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
 
+        const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1h' });
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'herminiomacamo6@gmail.com',
+                pass: 'awsyngcxxrprflrw '
+            },
+            tls: {
+                rejectUnauthorized: false // Ignora erros de certificado autoassinado
+            }
+        });
+        const mailOptions = {
+            from: 'herminiomacamo6@gmail.com',
+            to: user.email,
+            subject: 'Redefinição de Senha',
+            html: `<p>Clique no link para redefinir sua senha:</p>
+                   <a href="http://192.168.43.226:3000/redefinir-senha/${token}">Redefinir Senha</a>`
+        };
 
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ message: 'Email de recuperação enviado' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao enviar email de recuperação' });
+    }
+});
+
+router.post('/redefinir-senha', async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await prisma.user.update({
+            where: { id: decoded.id },
+            data: { password: hashedPassword }
+        });
+
+        res.status(200).json({ message: 'Senha redefinida com sucesso' });
+    } catch (error) {
+        console.error(error);
+        res.status(400).json({ error: 'Token inválido ou expirado' });
+    }
+});
 
 
 export default router;

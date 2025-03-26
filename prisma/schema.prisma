@@ -98,3 +98,14 @@ model CreditoSobra {
   valor     String
   missao_id String
 }
+
+model Imagens {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id   String
+  fotos     String[]
+  id_post String
+  type String
+  createdAt DateTime @default(now())
+}
+
+
