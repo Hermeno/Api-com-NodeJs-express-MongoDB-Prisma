@@ -328,6 +328,65 @@ router.put('/missao/:missaoId', async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+router.put('/despesa/:despesa_id', async (req, res) => {
+    const { despesa_id } = req.params;
+    const { valor, cidade, descricao, numero_recibo, data_padrao } = req.body;
+    const userId = req.userId;
+
+    try {
+        // Atualiza a despesa garantindo que o usuário só possa atualizar suas próprias despesas
+        const despesa = await prisma.despesa.update({
+            where: { 
+                id: despesa_id, 
+                user_id: userId 
+            },
+            data: { 
+                valor,
+                cidade,
+                descricao,
+                numero_recibo,
+                data_padrao
+            },
+        });
+
+        // Resposta de sucesso
+        res.status(200).json({ message: 'Despesa atualizada com sucesso.', despesa });
+    } catch (error) {
+        console.error('Erro ao atualizar a despesa:', error);
+        res.status(500).json({ message: 'Falha ao atualizar a despesa.', error });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 router.get('/buscar-cambios/:user_id', async (req, res) => {
     try {
         const user_id = parseInt(req.params.user_id)
@@ -375,6 +434,27 @@ router.get('/buscar-despesas-All', async (req, res) => {
         res.status(500).json({ message: 'Falha no servidor' });
     }
 });
+
+
+router.get('/buscar-despesas-One', async (req, res) => {
+    const { id_despesa } = req.query;  // Use `req.query` para parâmetros na URL
+    const user_id = req.userId;
+    try {
+        const despesas = await prisma.despesa.findUnique({
+            where: {
+                user_id, 
+                id: id_despesa,
+            }
+        });
+        console.log(despesas)
+        res.status(200).json({ message: 'despesas listadas!', despesas });
+    } catch (error) {
+        res.status(500).json({ message: 'Falha no servidor' });
+    }
+});
+
+
+
 
 router.post('/cadastrar-missao', async (req, res) => {
     try {
@@ -583,6 +663,7 @@ router.get('/buscar-missaoId', async (req, res) => {
 router.get('/buscar-despesas', async (req, res) => {
     const { missao_id } = req.query;  // Use `req.query` para parâmetros na URL
     const user_id = req.userId;
+    console.log(user_id, missao_id);
     try {
         const despesas = await prisma.despesa.findMany({
             where: {
@@ -590,6 +671,7 @@ router.get('/buscar-despesas', async (req, res) => {
                 missao_id: missao_id,
             }
         });
+        console.log(despesas)  // Mostra as despesas no console
         res.status(200).json({ message: 'Despesas listadas!', despesas });
     } catch (error) {
         res.status(500).json({ message: 'Falha no servidor' });
