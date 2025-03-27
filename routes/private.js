@@ -139,13 +139,12 @@ router.delete('/apagar-credito', async (req, res) => {
         const { id_post } = req.body;
         const user_id = req.userId;
         const type = 'cambio';
-        const fotos = req.files.map(file => file.path); // Pega os caminhos dos arquivos enviados
+        const fotos = req.files.map(file => file.filename);
 
         const pictures = await prisma.imagens.create({
-            data: { user_id, fotos, id_post, type }
+            data: { user_id, fotos, id_post,  type }
         });
 
-        console.log(pictures);
         res.status(200).json({ message: 'Cambio cadastrado com sucesso!', pictures });
     } catch (error) {
         console.error(error);
@@ -153,26 +152,81 @@ router.delete('/apagar-credito', async (req, res) => {
     }
 });
 
-
-router.post('/fotos-despesas', upload.array('file'), async (req, res) => {
+router.post('/fotos-despesas-cadastrar', upload.array('file'), async (req, res) => {
     try {
         const { id_post } = req.body;
         const user_id = req.userId;
         const type = 'despesas';
-        const fotos = req.files.map(file => file.path); // Pega os caminhos dos arquivos enviados
+
+        // Armazena apenas o nome do arquivo
+        const fotos = req.files.map(file => file.filename);
 
         const pictures = await prisma.imagens.create({
             data: { user_id, fotos, id_post, type }
         });
-
-        console.log(pictures);
-        res.status(200).json({ message: 'despesas cadastrado com sucesso!', pictures });
+        res.status(200).json({ message: 'Despesas cadastradas com sucesso!', pictures });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Falha ao cadastrar as fotos' });
     }
 });
 
+// router.post('/fotos-despesas-cadastrar', upload.array('file'), async (req, res) => {
+//     try {
+//         const { id_post } = req.body;
+//         const user_id = req.userId;
+//         const type = 'despesas';
+//         const fotos = req.files.map(file => file.path); // Pega os caminhos dos arquivos enviados
+
+//         const pictures = await prisma.imagens.create({
+//             data: { user_id, fotos, id_post, type }
+//         });
+
+//         console.log(pictures);
+//         res.status(200).json({ message: 'despesas cadastrado com sucesso!', pictures });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: 'Falha ao cadastrar as fotos' });
+//     }
+// });
+
+router.get('/fotos-despesas/:id_post', async (req, res) => {
+    try {
+        const { id_post } = req.params;
+
+        const pictures = await prisma.imagens.findMany({
+            where: { id_post: id_post }
+        });
+
+        if (!pictures || pictures.length === 0) {
+            return res.status(404).json({ message: 'Nenhuma imagem encontrada para este ID' });
+        }
+
+        res.status(200).json(pictures);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erro ao buscar as imagens' });
+    }
+});
+
+router.get('/fotos-cambios/:id_post', async (req, res) => {
+    try {
+        const { id_post } = req.params;
+
+        const pictures = await prisma.imagens.findMany({
+            where: { id_post: id_post }
+        });
+
+        if (!pictures || pictures.length === 0) {
+            return res.status(404).json({ message: 'Nenhuma imagem encontrada para este ID' });
+        }
+
+        res.status(200).json(pictures);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erro ao buscar as imagens' });
+    }
+});
 
 
 
@@ -200,8 +254,6 @@ router.post('/fotos-despesas', upload.array('file'), async (req, res) => {
 
 router.get('/buscar-imagens', async (req, res) => {
     const { id_post, type } = req.query;
-    // console.log(`Buscando imagens com id_post: ${id_post} e type: ${type}`);
-
     try {
         const imagens = await prisma.imagens.findMany({
             where: {
@@ -474,6 +526,42 @@ router.get('/buscar-cambios/:user_id', async (req, res) => {
 });
 
 
+
+
+
+
+router.get('/buscar-cambios-one-by-one', async (req, res) => {
+    try {
+        const { missao_id } = req.query;
+        const user_id = req.user_id;
+        const cambios = await prisma.cambio.findMany({
+            where: {
+                missao_id
+            } 
+        })
+        res.status(200).json({ message: 'Cambios encontrados!', cambios })
+    } catch (error) {
+        res.status(500).json({ message: 'Falha ao buscar os cambios'})
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 router.get('/buscar-cambio-All', async (req, res) => {
     const { missao_id } = req.query;  // Use `req.query` para parâmetros na URL
     const user_id = req.userId;
@@ -671,6 +759,22 @@ router.get('/buscar-missaoId', async (req, res) => {
       res.status(500).json({ message: 'Falha ao apagar as missões', error });
     }
   }); 
+
+
+
+
+
+  router.delete('/apagar-despesas', async (req, res) => {
+    try {
+      await prisma.despesa.deleteMany();
+      res.status(200).json({ message: 'Todas as missões foram eliminadas com sucesso!' });
+    } catch (error) {
+      console.error('Erro ao apagar as missões:', error);
+      res.status(500).json({ message: 'Falha ao apagar as missões', error });
+    }
+  });  
+
+
 
   router.post('/cadastrar-despesas', async (req, res) => {
     try {
