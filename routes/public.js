@@ -27,7 +27,7 @@ router.post('/cadastro', async (req, res) => {
                 username:  user.username,
                 name: user.name,
                 email: user.email,
-                password: hashPassword,
+                // password: hashPassword,
             },
         })
         res.status(201).json(usp);
