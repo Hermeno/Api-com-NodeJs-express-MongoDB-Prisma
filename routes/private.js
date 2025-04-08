@@ -334,6 +334,24 @@ router.put('/atualizar-cambio/:id', async (req, res) => {
             }
         });
 
+
+        const refere = 'Cambio de ' + moeda_origem + ' para ' + moeda_destino;
+
+
+     await prisma.credito.create({
+            data: {
+                user_id,
+                moeda: moeda_destino,
+                valor: total_cambiado,
+                referencia: refere,
+                missao_id
+            },
+        });
+
+
+
+
+
         res.status(200).json({ message: 'Câmbio atualizado com sucesso!', cambio: cambioAtualizado });
     } catch (error) {
         console.error('Erro ao atualizar câmbio:', error);
