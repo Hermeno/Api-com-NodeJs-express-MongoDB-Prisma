@@ -283,17 +283,6 @@ router.post('/cadastrar-cambio',  async (req, res) => {
         });
 
 
-        const referenc = 'Cambiado de ' + moeda_origem + 'para' + moeda_destino;
-
-        await prisma.credito.create({
-            data: {
-                user_id,
-                moeda: moeda_destino,
-                valor: total_cambiado,
-                referencia: referenc,
-                missao_id
-            },
-        });
 
 
 
