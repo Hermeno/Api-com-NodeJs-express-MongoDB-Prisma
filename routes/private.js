@@ -236,25 +236,19 @@ router.post('/cadastrar-cambio',  async (req, res) => {
     try {
         const { moeda_origem, moeda_destino, cotacao, total_a_cambiar, total_cambiado, numero_recibo,missao_id } = req.body;
         const user_id = req.userId;
-
-       // 🔎 Buscar crédito atual
         const credito = await prisma.credito.findFirst({
             where: {
                 user_id,
-                moeda: moeda_origem // Busca pela moeda de origem
+                moeda: moeda_origem,
+                missao_id
             }
         });
-
         if (!credito) {
             return res.status(404).json({ message: 'Crédito não encontrado para essa moeda' });
         }
-
-        // ✅ Converter para número antes da comparação
         if (Number(credito.valor) < total_a_cambiar) {
             return res.status(400).json({ message: 'Saldo insuficiente para realizar o câmbio' });
         }
-
-        // ✅ Converter para número antes de subtrair
         const novoValor = (Number(credito.valor) - total_a_cambiar).toString();
 
         await prisma.credito.update({
@@ -265,10 +259,6 @@ router.post('/cadastrar-cambio',  async (req, res) => {
                 valor: novoValor
             }
         });
-
-
-
-
         const cambio = await prisma.cambio.create({
             data: {
                 user_id,
@@ -281,15 +271,6 @@ router.post('/cadastrar-cambio',  async (req, res) => {
                 missao_id
             }
         });
-
-
-
-
-
-
-
-
-
         res.status(200).json({ message: 'Cambio cadastrado com sucesso!', cambio });
     } catch (error) {
         res.status(500).json({ message: 'Falha ao cadastrar o câmbio' });
