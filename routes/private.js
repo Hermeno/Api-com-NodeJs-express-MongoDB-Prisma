@@ -268,17 +268,6 @@ router.post('/cadastrar-cambio',  async (req, res) => {
 
 
 
-        const referenc = 'de' + moeda_origem + 'para' + moeda_destino;
-
-        await prisma.credito.create({
-            data: {
-                user_id,
-                moeda: moeda_destino,
-                valor: total_cambiado,
-                referencia: referenc,
-                missao_id
-            },
-        });
 
         const cambio = await prisma.cambio.create({
             data: {
@@ -292,6 +281,26 @@ router.post('/cadastrar-cambio',  async (req, res) => {
                 missao_id
             }
         });
+
+
+        const referenc = 'Cambiado de ' + moeda_origem + 'para' + moeda_destino;
+
+        await prisma.credito.create({
+            data: {
+                user_id,
+                moeda: moeda_destino,
+                valor: total_cambiado,
+                referencia: referenc,
+                missao_id
+            },
+        });
+
+
+
+
+
+
+
         res.status(200).json({ message: 'Cambio cadastrado com sucesso!', cambio });
     } catch (error) {
         res.status(500).json({ message: 'Falha ao cadastrar o câmbio' });
