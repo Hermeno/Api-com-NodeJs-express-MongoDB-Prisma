@@ -259,6 +259,20 @@ router.post('/cadastrar-cambio',  async (req, res) => {
                 valor: novoValor
             }
         });
+
+        const refere = 'Cambio de ' + moeda_origem + ' para ' + moeda_destino;
+        await prisma.credito.create({
+            data: {
+                user_id,
+                moeda: moeda_destino,
+                valor: total_cambiado,
+                referencia: refere,
+                missao_id
+            },
+        });
+
+
+
         const cambio = await prisma.cambio.create({
             data: {
                 user_id,
@@ -273,18 +287,6 @@ router.post('/cadastrar-cambio',  async (req, res) => {
         });
 
 
-        const refere = 'Cambio de ' + moeda_origem + ' para ' + moeda_destino;
-
-
-        await prisma.credito.create({
-            data: {
-                user_id,
-                moeda: moeda_destino,
-                valor: total_cambiado,
-                referencia: refere,
-                missao_id
-            },
-        });
 
 
 
