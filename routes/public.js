@@ -53,7 +53,7 @@ router.post('/login', async (req, res) => {
         if(!isMatch){
             return res.status(401).json({ error: 'E-mail ou senha inválidos' });
         }
-        const token = jwt.sign({ id: user.id, user: user.username, name: user.name,  email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user.id, user: user.username, name: user.name,  email: user.email }, JWT_SECRET, { expiresIn: '7d' });
         res.status(200).json(token)
     } 
     catch(error){
