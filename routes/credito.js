@@ -28,10 +28,18 @@ const storage = multer.diskStorage({
 
   router.post('/cadastrar-credito', async (req, res) => {
     try {
-        const { moeda, valor, referencia, missao_id } = req.body;
-        const user_id = req.userId; // Pega direto do token autenticado
+        const { moeda, valor: valorStr, referencia, missao_id } = req.body;
+        const user_id = req.userId;
+        const valor = Number(valorStr);
 
-        // Verifica se já existe crédito com a mesma moeda e missao_id para o user
+        if (!moeda || !valor || !missao_id) {
+            return res.status(400).json({ message: 'Campos obrigatórios não preenchidos.' });
+        }
+
+        if (isNaN(valor) || valor <= 0) {
+            return res.status(400).json({ message: 'O valor deve ser um número positivo.' });
+        }
+
         const creditoExistente = await prisma.credito.findFirst({
             where: {
                 user_id,
@@ -43,22 +51,21 @@ const storage = multer.diskStorage({
         let credito;
 
         if (creditoExistente) {
-            // Atualiza o valor existente somando ao novo valor
             credito = await prisma.credito.update({
                 where: {
                     id: creditoExistente.id
                 },
                 data: {
                     valor: {
-                        increment: valor // soma ao valor atual
+                        increment: valor
                     },
-                    // referencia // opcional: você pode querer atualizar a referência ou não
+                    // Se quiser atualizar a referencia:
+                    // referencia
                 }
             });
 
             res.status(200).json({ message: 'Crédito atualizado!', credito });
         } else {
-            // Cria novo crédito
             credito = await prisma.credito.create({
                 data: {
                     user_id,
@@ -77,6 +84,7 @@ const storage = multer.diskStorage({
         res.status(500).json({ message: 'Falha ao cadastrar o crédito' });
     }
 });
+
 
 
 
