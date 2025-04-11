@@ -30,16 +30,19 @@ const storage = multer.diskStorage({
     try {
         const { moeda, valor: valorStr, referencia, missao_id } = req.body;
         const user_id = req.userId;
-        const valor = Number(valorStr);
+        const valor = parseFloat(valorStr); // garante que é número
 
+        // Verificação de campos obrigatórios
         if (!moeda || !valor || !missao_id) {
             return res.status(400).json({ message: 'Campos obrigatórios não preenchidos.' });
         }
 
+        // Validação do valor
         if (isNaN(valor) || valor <= 0) {
             return res.status(400).json({ message: 'O valor deve ser um número positivo.' });
         }
 
+        // Busca crédito existente
         const creditoExistente = await prisma.credito.findFirst({
             where: {
                 user_id,
@@ -51,26 +54,29 @@ const storage = multer.diskStorage({
         let credito;
 
         if (creditoExistente) {
+            // Soma manualmente o valor
+            const valorAtual = parseFloat(creditoExistente.valor);
+            const novoValor = valorAtual + valor;
+
+            // Atualiza com novo valor
             credito = await prisma.credito.update({
                 where: {
                     id: creditoExistente.id
                 },
                 data: {
-                    valor: {
-                        increment: valor
-                    },
-                    // Se quiser atualizar a referencia:
-                    // referencia
+                    valor: novoValor.toString(), // garante que salva como string se o campo for string
+                    // referencia: referencia // opcional: atualize se quiser
                 }
             });
 
             res.status(200).json({ message: 'Crédito atualizado!', credito });
         } else {
+            // Cria novo crédito
             credito = await prisma.credito.create({
                 data: {
                     user_id,
                     moeda,
-                    valor,
+                    valor: valor.toString(), // garante compatibilidade com tipo string
                     referencia,
                     missao_id
                 }
@@ -84,6 +90,7 @@ const storage = multer.diskStorage({
         res.status(500).json({ message: 'Falha ao cadastrar o crédito' });
     }
 });
+
 
 
 
