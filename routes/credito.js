@@ -26,22 +26,52 @@ const storage = multer.diskStorage({
   const upload = multer({ storage });
 
 
-router.post('/cadastrar-credito', async (req, res) => {
+  router.post('/cadastrar-credito', async (req, res) => {
     try {
         const { moeda, valor, referencia, missao_id } = req.body;
         const user_id = req.userId; // Pega direto do token autenticado
 
-        const credito = await prisma.credito.create({
-            data: {
+        // Verifica se já existe crédito com a mesma moeda e missao_id para o user
+        const creditoExistente = await prisma.credito.findFirst({
+            where: {
                 user_id,
                 moeda,
-                valor,
-                referencia,
                 missao_id
-            },
+            }
         });
 
-        res.status(201).json({ message: 'Crédito cadastrado!', credito });
+        let credito;
+
+        if (creditoExistente) {
+            // Atualiza o valor existente somando ao novo valor
+            credito = await prisma.credito.update({
+                where: {
+                    id: creditoExistente.id
+                },
+                data: {
+                    valor: {
+                        increment: valor // soma ao valor atual
+                    },
+                    referencia // opcional: você pode querer atualizar a referência ou não
+                }
+            });
+
+            res.status(200).json({ message: 'Crédito atualizado!', credito });
+        } else {
+            // Cria novo crédito
+            credito = await prisma.credito.create({
+                data: {
+                    user_id,
+                    moeda,
+                    valor,
+                    referencia,
+                    missao_id
+                }
+            });
+
+            res.status(201).json({ message: 'Crédito cadastrado!', credito });
+        }
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Falha ao cadastrar o crédito' });
