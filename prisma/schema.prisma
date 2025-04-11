@@ -23,7 +23,7 @@ model Credito {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   user_id      String
   moeda        String
-  valor         String
+  valor         Float
   referencia   String
   missao_id   String
   data_criacao DateTime @default(now())
